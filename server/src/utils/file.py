@@ -16,6 +16,10 @@ from src.utils.export import export_file
 from src.utils.export import json_to_text
 from string import punctuation
 
+OCR_RASTER_IMAGE_EXT = os.getenv("OCR_RASTER_IMAGE_EXT", ".png")  # Default to .png if not set
+OCR_RASTER_IMAGE_FORMAT = os.getenv("OCR_RASTER_IMAGE_FORMAT", "PNG")
+OCR_RASTER_IMAGE_SAVE_OPTIONS = json.loads(os.getenv("OCR_RASTER_IMAGE_SAVE_OPTIONS", '{"compress_level":0, "optimize":false}'))
+
 IMAGE_PREFIX = environ.get("IMAGE_PREFIX", ".")
 TIMEZONE = pytz.timezone("Europe/Lisbon")
 ##################################################
@@ -120,7 +124,7 @@ def get_file_parsed(path):
                     + "/".join(file.split("/")[1:-2])
                     + "/"
                     + basename
-                    + ".jpg",
+                    + ".png",
                 }
             )
     return data, words
@@ -133,7 +137,7 @@ def get_file_layouts(path):
 
     for page in range(data["pages"]):
         filename = f"{path}/layouts/{basename}_{page}.json"
-        page_url = IMAGE_PREFIX + "/images/" + "/".join(path.split("/")[1:]) + f"/{basename}_{page}.jpg"
+        page_url = IMAGE_PREFIX + "/images/" + "/".join(path.split("/")[1:]) + f"/{basename}_{page}.png"
 
         if os.path.exists(filename):
             with open(filename, encoding="utf-8") as f:
@@ -358,7 +362,7 @@ def get_page_count(filename):
         with open(filename, "rb") as f:
             return len(pdfium.PdfDocument(f))
             # return len(PdfReader(f).pages)
-    elif extension in ["jpg", "jpeg"]:
+    elif extension in ["jpg", "jpeg", "png"]:
         return 1
 
 # DONE
@@ -425,13 +429,13 @@ def prepare_file_ocr(path):
                 page = pdf[i]
                 bitmap = page.render(200 / 72)
                 pil_image = bitmap.to_pil()
-                pil_image.save(f"{path}/{basename}_{i}.jpg")
-
+                filename = f"{path}/{basename}_{i}{OCR_RASTER_IMAGE_EXT}"
+                pil_image.save(filename, format=OCR_RASTER_IMAGE_FORMAT, **OCR_RASTER_IMAGE_SAVE_OPTIONS)
             pdf.close()
 
-        elif extension in ["jpeg", "jpg"]:
+        elif extension in ["jpeg", "jpg", "png"]:
             img = Image.open(f"{path}/{basename}.{extension}")
-            img.save(f"{path}/{basename}.jpg", "JPEG")
+            img.save(f"{path}/{basename}.png", "PNG")
     except Exception as e:
         
         data_folder = f"{path}/_data.json"
